@@ -20,6 +20,7 @@ const bootstrap = async () => {
     app.enableCors({
         origin: "https://wault.app",
         optionsSuccessStatus: 200,
+        credentials: true,
     });
 
     // use cookie parser to be able to recieve session token
