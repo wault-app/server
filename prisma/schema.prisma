@@ -34,42 +34,44 @@ model Icon {
 }
 
 model EmailConfirmation {
-  id         String   @id @default(cuid()) @map("_id")
+  id         String     @id @default(cuid()) @map("_id")
   secret     String
   email      String
   username   String
   rsaKey     String
   deviceName String
   deviceType DeviceType
-  createdAt  DateTime @default(now())
-  
+  createdAt  DateTime   @default(now())
+
   @@map("email_confirmation")
 }
 
 model Authentication {
-  id         String  @id @default(cuid()) @map("_id")
+  id         String     @id @default(cuid()) @map("_id")
   secret     String
   rsaKey     String
   deviceName String
   deviceType DeviceType
-  passed     Boolean @default(false)
-  user       User?   @relation(fields: [userId], references: [id])
+  user       User?      @relation(fields: [userId], references: [id])
+  device     Device?    @relation(fields: [deviceId], references: [id])
 
-  userId            String?
+  userId   String?
+  deviceId String?
   @@map("authentications")
 }
 
 model Device {
   id           String     @id @default(cuid()) @map("_id")
-  sessionToken String?     @map("session_token")
+  sessionToken String?    @map("session_token")
   name         String
   type         DeviceType
   rsaKey       String
   loggedInAt   DateTime   @default(now()) @map("logged_in_at")
   user         User       @relation(fields: [userId], references: [id])
-
-  userId       String
-  keyExchanges KeyExchange[]
+  authentication Authentication?
+  ykeyExchanges    KeyExchange[]
+  
+  userId          String
   @@map("devices")
 }
 
@@ -127,7 +129,7 @@ enum RoleType {
 }
 
 enum DeviceType {
-  WEB
+  BROWSER
   MOBILE
   DESKTOP
   CLI

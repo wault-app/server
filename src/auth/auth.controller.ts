@@ -13,7 +13,7 @@ export class AuthController {
             username: z.string(),
             email: z.string().email(),
             rsaKey: z.string(),
-            deviceType: z.enum(["WEB", "MOBILE", "DESKTOP", "CLI"]),
+            deviceType: z.enum(["BROWSER", "MOBILE", "DESKTOP", "CLI"]),
             deviceName: z.string(),
         });
         
