@@ -49,7 +49,7 @@ export class RemoteAuthService {
             },
         });
         
-        await this.prisma.authentication.update({
+        const {device} = await this.prisma.authentication.update({
             where: {
                 id,
             },
@@ -64,18 +64,35 @@ export class RemoteAuthService {
                                 id: auth.userId,
                             },
                         },
-                        keyExchanges: {
-                            createMany: {
-                                data: keyExchanges.map((key) => ({
-                                    value: key.value,
-                                    safeId: key.safeid,
-                                })),
-                            },
-                        },
                     },
                 },
             },
+            include: {
+                device: true,
+            },
         })
+
+        await Promise.all(
+            keyExchanges.map(
+                async (key) => {
+                    await this.prisma.keyExchange.create({
+                        data: {
+                            device: {
+                                connect: {
+                                    id: device.id
+                                },
+                            },
+                            safe: {
+                                connect: {
+                                    id: key.safeid,
+                                },
+                            },
+                            value: key.value,
+                        },
+                    })
+                }
+            )
+        )
     }
 
     async check(id: string, secret: string) {
