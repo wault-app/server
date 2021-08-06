@@ -19,6 +19,7 @@ import { KeyExchangeController } from './key-exchange/key-exchange.controller';
 import { ItemService } from './item/item.service';
 import { RemoteAuthController } from './remote-auth/remote-auth.controller';
 import { RemoteAuthService } from './remote-auth/remote-auth.service';
+import { UserController } from './user/user.controller';
 
 @Module({
   imports: [
@@ -33,7 +34,7 @@ import { RemoteAuthService } from './remote-auth/remote-auth.service';
     SecretModule,
     PrismaModule
   ],
-  controllers: [SafeController, ItemController, KeyExchangeController, RemoteAuthController, KeyExchangeController],
+  controllers: [SafeController, ItemController, KeyExchangeController, RemoteAuthController, KeyExchangeController, UserController],
   providers: [PrismaService, SecretService, DeviceService, SessionTokenService, SafeService, KeyExchangeService, UserService, ItemService, RemoteAuthService]
 })
 export class AppModule { }
