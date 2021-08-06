@@ -1,0 +1,134 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["nApi", "referentialActions"]
+}
+
+model User {
+  id       String @id @default(cuid()) @map("_id")
+  username String @unique
+  email    String @unique
+  icon     Icon?
+
+  devices         Device[]
+  authentications Authentication[]
+  keycards        Keycard[]
+  @@map("users")
+}
+
+model Icon {
+  id    String   @id @default(cuid()) @map("_id")
+  type  IconType
+  value String
+  user  User     @relation(fields: [userId], references: [id])
+
+  userId String @map("user_id")
+  @@map("icons")
+}
+
+model EmailConfirmation {
+  id         String   @id @default(cuid()) @map("_id")
+  secret     String
+  email      String
+  username   String
+  rsaKey     String
+  deviceName String
+  deviceType DeviceType
+  createdAt  DateTime @default(now())
+  
+  @@map("email_confirmation")
+}
+
+model Authentication {
+  id         String  @id @default(cuid()) @map("_id")
+  secret     String
+  rsaKey     String
+  deviceName String
+  deviceType DeviceType
+  passed     Boolean @default(false)
+  user       User?   @relation(fields: [userId], references: [id])
+
+  userId            String?
+  @@map("authentications")
+}
+
+model Device {
+  id           String     @id @default(cuid()) @map("_id")
+  sessionToken String?     @map("session_token")
+  name         String
+  type         DeviceType
+  rsaKey       String
+  loggedInAt   DateTime   @default(now()) @map("logged_in_at")
+  user         User       @relation(fields: [userId], references: [id])
+
+  userId       String
+  keyExchanges KeyExchange[]
+  @@map("devices")
+}
+
+model Safe {
+  id    String @id @default(cuid()) @map("_id")
+  name  String
+  items Item[]
+
+  keycards     Keycard[]
+  keyExchanges KeyExchange[]
+  @@map("safes")
+}
+
+model KeyExchange {
+  id     String @id @default(cuid()) @map("_id")
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  safe   Safe   @relation(fields: [safeId], references: [id])
+  value  String
+
+  deviceId String @map("device_id")
+  safeId   String @map("safe_id")
+  @@map("key_exchanges")
+}
+
+model Item {
+  id   String @id @default(cuid()) @map("_id")
+  data String
+  safe Safe   @relation(fields: [safeId], references: [id])
+
+  safeId String @map("safe_id")
+  @@map("items")
+}
+
+model Keycard {
+  id   String   @id @default(cuid()) @map("_id")
+  safe Safe     @relation(fields: [safeId], references: [id])
+  user User     @relation(fields: [userId], references: [id])
+  role RoleType
+
+  safeId String @map("safe_id")
+  userId String @map("user_id")
+  @@unique([safeId, userId])
+  @@map("keycards")
+}
+
+enum IconType {
+  EMOJI
+  IMAGE
+}
+
+enum RoleType {
+  OWNER
+  WRITER
+  READER
+}
+
+enum DeviceType {
+  WEB
+  MOBILE
+  DESKTOP
+  CLI
+}
