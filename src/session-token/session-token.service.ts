@@ -32,6 +32,7 @@ export class SessionTokenService {
                         name: device.name,
                         type: device.type,
                         rsaKey: device.rsaKey,
+                        loggedInAt: device.loggedInAt,
                     },
                 }
             )
