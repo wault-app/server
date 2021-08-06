@@ -15,7 +15,6 @@ import { PrismaModule } from './prisma/prisma.module';
 import { SafeService } from './safe/safe.service';
 import { KeyExchangeService } from './key-exchange/key-exchange.service';
 import { UserService } from './user/user.service';
-import { UserModule } from './user/user.module';
 import { KeyExchangeController } from './key-exchange/key-exchange.controller';
 import { ItemService } from './item/item.service';
 import { RemoteAuthController } from './remote-auth/remote-auth.controller';
@@ -32,8 +31,7 @@ import { RemoteAuthService } from './remote-auth/remote-auth.service';
     DeviceModule,
     SessionTokenModule,
     SecretModule,
-    PrismaModule,
-    UserModule
+    PrismaModule
   ],
   controllers: [SafeController, ItemController, KeyExchangeController, RemoteAuthController, KeyExchangeController],
   providers: [PrismaService, SecretService, DeviceService, SessionTokenService, SafeService, KeyExchangeService, UserService, ItemService, RemoteAuthService]

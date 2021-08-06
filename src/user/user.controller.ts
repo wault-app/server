@@ -1,15 +1,15 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { SessionTokenGuard } from 'src/session-token/session-token.guard';
 import { User } from './user.decorator';
 import { UserService } from './user.service';
 
 @Controller('user')
 export class UserController {
-    constructor(private service: UserService) {}
-    
+    constructor(private service: UserService) { }
+
     @Get()
-    @UseGuards(AuthGuard)
+    @UseGuards(SessionTokenGuard)
     async get(@User() user: User) {
-        return this.service.getUser(user);
+        return await this.service.getUser(user);
     }
 }
