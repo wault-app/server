@@ -70,6 +70,6 @@ export class RemoteAuthController {
             delete resp.sessionToken;
         }
 
-        return resp;
+        return res.json(resp);
     }
 }
