@@ -11,6 +11,7 @@ export class SafeService {
             data,
             select: {
                 id: true,
+                role: true,
                 safe: {
                     select: {
                         id: true,
@@ -24,6 +25,7 @@ export class SafeService {
                         keycards: {
                             select: {
                                 id: true,
+                                role: true,
                                 user: {
                                     select: {
                                         id: true,
@@ -57,6 +59,7 @@ export class SafeService {
             where,
             select: {
                 id: true,
+                role: true,
                 safe: {
                     select: {
                         id: true,
@@ -70,6 +73,7 @@ export class SafeService {
                         keycards: {
                             select: {
                                 id: true,
+                                role: true,
                                 user: {
                                     select: {
                                         id: true,
