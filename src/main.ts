@@ -4,6 +4,7 @@ import * as helmet from "helmet";
 import * as cookieParser from 'cookie-parser';
 import * as fs from 'fs';
 import { json as bodyParser } from 'body-parser';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 const httpsOptions = process.env.NODE_ENV === "production" ? {
     key: fs.readFileSync('/etc/letsencrypt/live/server.wault.app/privkey.pem', 'utf8'),
@@ -16,6 +17,17 @@ const bootstrap = async () => {
     const app = await NestFactory.create(AppModule, {
         httpsOptions,
     });
+
+    // setup swagger module
+    const config = new DocumentBuilder()
+        .setTitle('Wault API documentation')
+        .setDescription('This is the official API documentation of Wault.')
+        .setVersion('1.0')
+        .addBearerAuth()
+        .setContact("Gál Péter (pepyta)", "https://github.com/pepyta", "pepyta118@gmail.com")
+        .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('docs', app, document);
 
     // enable cors requests from wault.app
     app.enableCors({

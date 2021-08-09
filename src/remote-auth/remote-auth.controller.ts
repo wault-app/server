@@ -1,22 +1,30 @@
 import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { DeviceType } from '@prisma/client';
 import { serialize } from 'cookie';
 import { Request, Response } from 'express';
+import { CheckRemoteAuthDTO } from 'src/dto/CheckRemoteAuthDTO';
+import { ScanRemoteAuthDTO } from 'src/dto/ScanRemoteAuthDTO';
+import { SendRemoteAuthDTO } from 'src/dto/SendRemoteAuthDTO';
+import { StartRemoteAuthDTO } from 'src/dto/StartRemoteAuthDTO';
 import { SessionTokenGuard } from 'src/session-token/session-token.guard';
 import { User } from 'src/user/user.decorator';
 import { RemoteAuthGuard } from './remote-auth.guard';
 import { RemoteAuthService } from './remote-auth.service';
 
 @Controller('/auth/remote')
+@ApiTags('remote-auth')
 export class RemoteAuthController {
     constructor(private service: RemoteAuthService) { }
 
     @Post("/start")
     @UseGuards(RemoteAuthGuard)
     async start(
-        @Body("deviceName") deviceName: string,
-        @Body("deviceType") deviceType: DeviceType,
-        @Body("rsaKey") rsaKey: string
+        @Body() {
+            deviceName,
+            deviceType,
+            rsaKey
+        }: StartRemoteAuthDTO
     ) {
         const { id, secret } = await this.service.start(deviceName, deviceType, rsaKey);
 
@@ -28,7 +36,7 @@ export class RemoteAuthController {
 
     @Post("/scan")
     @UseGuards(SessionTokenGuard, RemoteAuthGuard)
-    async scan(@User() user: User, @Body("id") id: string) {
+    async scan(@User() user: User, @Body() { id }: ScanRemoteAuthDTO) {
         const { rsaKey } = await this.service.scan(user, id);
 
         return {
@@ -39,7 +47,8 @@ export class RemoteAuthController {
 
     @Post("/send")
     @UseGuards(SessionTokenGuard, RemoteAuthGuard)
-    async send(@Body("id") id: string, @Body("keyExchanges") keyExchanges) {
+    @ApiBearerAuth()
+    async send(@Body() { id, keyExchanges }: SendRemoteAuthDTO) {
         await this.service.send(id, keyExchanges);
 
         return {
@@ -49,7 +58,10 @@ export class RemoteAuthController {
 
     @Post("/check")
     @UseGuards(RemoteAuthGuard)
-    async check(@Body("id") id: string, @Body("secret") secret: string, @Res() res: Response, @Body("web") web?: boolean) {
+    async check(
+        @Body() { id, secret, web }: CheckRemoteAuthDTO,
+        @Res() res: Response
+    ) {
         const resp = await this.service.check(id, secret);
 
         if (resp.sessionToken && web) {

@@ -1,4 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+import { CreateSafeDTO } from 'src/dto/CreateSafeDTO';
+import { EditSafeDTO } from 'src/dto/EditSafeDTO';
 import { KeyExchangeService } from 'src/key-exchange/key-exchange.service';
 import { Role } from 'src/role/role.decorator';
 import { SessionTokenGuard } from 'src/session-token/session-token.guard';
@@ -7,6 +10,8 @@ import { SafeGuard } from './safe.guard';
 import { SafeService } from './safe.service';
 
 @Controller('safe')
+@ApiTags("safe")
+@ApiBearerAuth()
 export class SafeController {
     constructor(private keycard: SafeService, private keyExchange: KeyExchangeService) { }
 
@@ -24,6 +29,9 @@ export class SafeController {
 
     @Post()
     @UseGuards(SessionTokenGuard, SafeGuard)
+    @ApiBody({
+        type: CreateSafeDTO,
+    })
     async create(@Body("name") name: string, @Body("keyExchanges") keyExchanges, @User() user: User) {
         // create a new keycard object inside the database
         const keycard = await this.keycard.create({
@@ -70,6 +78,9 @@ export class SafeController {
     @Put(":id")
     @Role("OWNER", "WRITER")
     @UseGuards(SessionTokenGuard, SafeGuard)
+    @ApiBody({
+        type: EditSafeDTO,
+    })
     async edit(@Param("id") id: string, @User() user: User, @Body("name") name: string) {
         const keycard = await this.keycard.edit({
             where: {
