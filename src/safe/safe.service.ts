@@ -99,7 +99,15 @@ export class SafeService {
                     }
                 }
             },
-        })).reverse().map((keycard) => keycard.safe.items.reverse());
+        })).reverse().map(
+            (keycard) => ({
+                ...keycard,
+                safe: {
+                    ...keycard.safe,
+                    items: keycard.safe.items.reverse(),
+                },
+            })
+        );
     }
 
     async edit(data: Prisma.KeycardUpdateArgs) {
