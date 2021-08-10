@@ -7,7 +7,7 @@ export class SafeService {
     constructor(private prisma: PrismaService) { }
 
     async create(data: Prisma.KeycardCreateInput) {
-        return await this.prisma.keycard.create({
+        return (await this.prisma.keycard.create({
             data,
             select: {
                 id: true,
@@ -51,7 +51,7 @@ export class SafeService {
                     }
                 }
             },
-        });
+        })).reverse().map((keycard) => keycard.safe.items.reverse());
     }
 
     async getAll(where?: Prisma.KeycardWhereInput) {
