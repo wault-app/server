@@ -67,11 +67,12 @@ export class AuthController {
 
         const { email, password, deviceName, deviceType } = schema.parse(body);
 
-        const { sessionToken } = await this.service.login(email, password, deviceName, deviceType);
+        const { sessionToken, rsa } = await this.service.login(email, password, deviceName, deviceType);
 
         return {
             message: "Successful authentication!",
             sessionToken,
+            rsa,
         };
     }
 }
