@@ -16,7 +16,6 @@ const bootstrap = async () => {
     // create a new nest instance
     const app = await NestFactory.create(AppModule, {
         httpsOptions,
-        logger: ['log', 'error', 'warn', 'debug', 'verbose']
     });
 
     // setup swagger module
