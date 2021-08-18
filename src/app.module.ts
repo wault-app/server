@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { SafeController } from './safe/safe.controller';
 import { ItemController } from './item/item.controller';
 import { AuthModule } from './auth/auth.module';
@@ -20,6 +21,7 @@ import { UserController } from './user/user.controller';
 @Module({
   imports: [
     AuthModule,
+    ConfigModule.forRoot(),
     ThrottlerModule.forRoot({
       ttl: 60,
       limit: 10,
