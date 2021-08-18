@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { MailService } from 'src/mail/mail.service';
@@ -6,6 +6,7 @@ import { DeviceType } from '@prisma/client';
 import { SecretService } from 'src/secret/secret.service';
 import { DeviceService } from 'src/device/device.service';
 import { SessionTokenService } from 'src/session-token/session-token.service';
+import { RSAKeyPairDTO } from 'src/dto/RSAKeyPairDTO';
 
 @Injectable()
 export class AuthService {
@@ -62,11 +63,13 @@ export class AuthService {
                 create: {
                     username: confirmation.username,
                     email: confirmation.email,
+                    password: confirmation.password,
+                    privateRSAKey: confirmation.privateRSAKey,
+                    publicRSAKey: confirmation.publicRSAKey,
                 },
             },
             name: confirmation.deviceName,
             type: confirmation.deviceType,
-            rsaKey: confirmation.rsaKey,
         });
 
         // generate session token for the device
@@ -77,7 +80,40 @@ export class AuthService {
         };
     }
 
-    async sendVerificationEmail(username: string, email: string, deviceType: DeviceType, deviceName: string, rsaKey: string) {
+    async login(email: string, password: string, deviceName: string, deviceType: DeviceType) {
+        const user = await this.prisma.user.findUnique({
+            where: {
+                email,
+            },
+        });
+
+        if(!user) throw new NotFoundException();
+        if(!(await bcrypt.compare(password, user.password))) throw new ForbiddenException();
+
+        // create the device
+        const device = await this.device.create({
+            user: {
+                connect: {
+                    id: user.id,
+                },
+            },
+            name: deviceName,
+            type: deviceType,
+        });
+
+        // generate session token for the device
+        const sessionToken = await this.sessionToken.create(device);
+
+        return {
+            sessionToken,
+            rsa: {
+                public: user.publicRSAKey,
+                private: user.privateRSAKey,
+            },
+        };
+    }
+
+    async sendVerificationEmail(username: string, email: string, password: string, deviceType: DeviceType, deviceName: string, rsa: RSAKeyPairDTO) {
         // generate a random hex string to verify indentity
         const secret = this.secret.generateHex(128);
 
@@ -87,9 +123,11 @@ export class AuthService {
                 secret: await bcrypt.hash(secret, 10),
                 email,
                 username,
+                password: await bcrypt.hash(password, 10),
                 deviceType,
                 deviceName,
-                rsaKey,
+                publicRSAKey: rsa.public,
+                privateRSAKey: rsa.private,
             },
         });
 

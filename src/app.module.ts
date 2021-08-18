@@ -13,12 +13,8 @@ import { SessionTokenModule } from './session-token/session-token.module';
 import { SecretModule } from './secret/secret.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SafeService } from './safe/safe.service';
-import { KeyExchangeService } from './key-exchange/key-exchange.service';
 import { UserService } from './user/user.service';
-import { KeyExchangeController } from './key-exchange/key-exchange.controller';
 import { ItemService } from './item/item.service';
-import { RemoteAuthController } from './remote-auth/remote-auth.controller';
-import { RemoteAuthService } from './remote-auth/remote-auth.service';
 import { UserController } from './user/user.controller';
 
 @Module({
@@ -34,7 +30,7 @@ import { UserController } from './user/user.controller';
     SecretModule,
     PrismaModule
   ],
-  controllers: [SafeController, ItemController, KeyExchangeController, RemoteAuthController, KeyExchangeController, UserController],
-  providers: [PrismaService, SecretService, DeviceService, SessionTokenService, SafeService, KeyExchangeService, UserService, ItemService, RemoteAuthService]
+  controllers: [SafeController, ItemController, UserController],
+  providers: [PrismaService, SecretService, DeviceService, SessionTokenService, SafeService, UserService, ItemService]
 })
 export class AppModule { }

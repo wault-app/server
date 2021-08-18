@@ -27,11 +27,14 @@ export class SessionTokenService {
                     secret, // this functions as a password for our session token
                     username: user.username,
                     email: user.email,
+                    rsa: {
+                        public: user.publicRSAKey,
+                        private: user.privateRSAKey,
+                    },
                     device: {
                         id: device.id,
                         name: device.name,
                         type: device.type,
-                        rsaKey: device.rsaKey,
                         loggedInAt: device.loggedInAt,
                     },
                 }

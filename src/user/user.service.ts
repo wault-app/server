@@ -14,6 +14,8 @@ export class UserService {
             select: {
                 id: true,
                 email: true,
+                publicRSAKey: true,
+                privateRSAKey: true,
                 username: true,
                 icon: {
                     select: {

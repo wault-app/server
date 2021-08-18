@@ -2,7 +2,6 @@ import { Body, Controller, Delete, Get, Param, Post, Put, Req, UseGuards } from 
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { CreateSafeDTO } from 'src/dto/CreateSafeDTO';
 import { EditSafeDTO } from 'src/dto/EditSafeDTO';
-import { KeyExchangeService } from 'src/key-exchange/key-exchange.service';
 import { Role } from 'src/role/role.decorator';
 import { SessionTokenGuard } from 'src/session-token/session-token.guard';
 import { User } from 'src/user/user.decorator';
@@ -13,7 +12,7 @@ import { SafeService } from './safe.service';
 @ApiTags("safe")
 @ApiBearerAuth()
 export class SafeController {
-    constructor(private keycard: SafeService, private keyExchange: KeyExchangeService) { }
+    constructor(private keycard: SafeService) { }
 
     @Get()
     @UseGuards(SessionTokenGuard)
@@ -32,14 +31,21 @@ export class SafeController {
     @ApiBody({
         type: CreateSafeDTO,
     })
-    async create(@Body("name") name: string, @Body("keyExchanges") keyExchanges, @User() user: User) {
+    async create(
+        @Body("name") name: string,
+        @Body("description") description: string,
+        @Body("secret") secret: string,
+        @User() user: User
+    ) {
         // create a new keycard object inside the database
         const keycard = await this.keycard.create({
             safe: {
                 create: {
                     name,
+                    description,
                 },
             },
+            secret,
             role: "OWNER",
             user: {
                 connect: {
@@ -47,27 +53,6 @@ export class SafeController {
                 },
             },
         });
-
-        // create all key exchange object for the database
-        await Promise.all(
-            keyExchanges.map(
-                async (key) => {
-                    await this.keyExchange.create({
-                        device: {
-                            connect: {
-                                id: key.deviceid,
-                            },
-                        },
-                        value: key.value,
-                        safe: {
-                            connect: {
-                                id: keycard.safe.id,
-                            },
-                        },
-                    });
-                }
-            )
-        )
 
         return {
             message: "Safe successfully created!",

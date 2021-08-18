@@ -12,10 +12,14 @@ generator client {
 }
 
 model User {
-  id       String @id @default(cuid()) @map("_id")
-  username String @unique
-  email    String @unique
-  icon     Icon?
+  id            String @id @default(cuid()) @map("_id")
+  username      String @unique
+  email         String @unique
+  password      String // pbkd2 on client-side -> encrypted with bcrypt with >=10 rounds on server-side
+  publicRSAKey  String // not encrypted
+  privateRSAKey String // encrypted with AES-256 (key is derived from password)
+
+  icon Icon?
 
   devices         Device[]
   authentications Authentication[]
@@ -34,11 +38,18 @@ model Icon {
 }
 
 model EmailConfirmation {
-  id         String     @id @default(cuid()) @map("_id")
-  secret     String
-  email      String
-  username   String
-  rsaKey     String
+  // information needed to verify email
+  id     String @id @default(cuid()) @map("_id")
+  secret String
+
+  // information needed to create user
+  email         String
+  username      String
+  password      String
+  publicRSAKey  String
+  privateRSAKey String
+
+  // information needed to create device
   deviceName String
   deviceType DeviceType
   createdAt  DateTime   @default(now())
@@ -47,16 +58,15 @@ model EmailConfirmation {
 }
 
 model Authentication {
-  id         String     @id @default(cuid()) @map("_id")
-  secret     String
-  rsaKey     String
-  deviceName String
-  deviceType DeviceType
-  user       User?      @relation(fields: [userId], references: [id])
-  device     Device?    @relation(fields: [deviceId], references: [id])
+  id           String     @id @default(cuid()) @map("_id")
+  secret       String
+  deviceName   String
+  deviceType   DeviceType
+  publicRSAKey String
+  password     String? // encrypted with RSA-2048 based on `publicRSAKey` 
+  user         User?      @relation(fields: [userId], references: [id])
 
-  userId   String?
-  deviceId String?
+  userId String?
   @@map("authentications")
 }
 
@@ -65,35 +75,22 @@ model Device {
   sessionToken String?    @map("session_token")
   name         String
   type         DeviceType
-  rsaKey       String
   loggedInAt   DateTime   @default(now()) @map("logged_in_at")
   user         User       @relation(fields: [userId], references: [id])
-  authentication Authentication?
-  ykeyExchanges    KeyExchange[]
-  
-  userId          String
+
+  userId           String
+  authenticationId String?
   @@map("devices")
 }
 
 model Safe {
-  id    String @id @default(cuid()) @map("_id")
-  name  String
-  items Item[]
+  id          String  @id @default(cuid()) @map("_id")
+  name        String
+  description String?
+  items       Item[]
 
-  keycards     Keycard[]
-  keyExchanges KeyExchange[]
+  keycards Keycard[]
   @@map("safes")
-}
-
-model KeyExchange {
-  id     String @id @default(cuid()) @map("_id")
-  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  safe   Safe   @relation(fields: [safeId], references: [id])
-  value  String
-
-  deviceId String @map("device_id")
-  safeId   String @map("safe_id")
-  @@map("key_exchanges")
 }
 
 model Item {
@@ -106,10 +103,11 @@ model Item {
 }
 
 model Keycard {
-  id   String   @id @default(cuid()) @map("_id")
-  safe Safe     @relation(fields: [safeId], references: [id])
-  user User     @relation(fields: [userId], references: [id])
-  role RoleType
+  id     String   @id @default(cuid()) @map("_id")
+  secret String // encrypted with RSA-2048 with user's publicRSAKey
+  safe   Safe     @relation(fields: [safeId], references: [id])
+  user   User     @relation(fields: [userId], references: [id])
+  role   RoleType
 
   safeId String @map("safe_id")
   userId String @map("user_id")

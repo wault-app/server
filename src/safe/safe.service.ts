@@ -41,7 +41,6 @@ export class SafeService {
                                         devices: {
                                             select: {
                                                 id: true,
-                                                rsaKey: true,
                                             },
                                         }
                                     }
@@ -89,7 +88,6 @@ export class SafeService {
                                         devices: {
                                             select: {
                                                 id: true,
-                                                rsaKey: true,
                                             },
                                         }
                                     }
@@ -142,7 +140,6 @@ export class SafeService {
                                         devices: {
                                             select: {
                                                 id: true,
-                                                rsaKey: true,
                                             },
                                         }
                                     }

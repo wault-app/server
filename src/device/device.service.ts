@@ -17,7 +17,6 @@ export class DeviceService {
             ...data,
             select: {
                 id: true,
-                rsaKey: true,
                 name: true,
                 type: true,
                 loggedInAt: true,
