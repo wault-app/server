@@ -12,6 +12,7 @@ export class SafeService {
             select: {
                 id: true,
                 role: true,
+                secret: true,
                 safe: {
                     select: {
                         id: true,
@@ -59,6 +60,7 @@ export class SafeService {
             select: {
                 id: true,
                 role: true,
+                secret: true,
                 safe: {
                     select: {
                         id: true,
@@ -112,6 +114,8 @@ export class SafeService {
         return await this.prisma.keycard.update({
             select: {
                 id: true,
+                role: true,
+                secret: true,
                 safe: {
                     select: {
                         id: true,
