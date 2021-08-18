@@ -22,29 +22,12 @@ export class SafeGuard implements CanActivate {
             // check for body type mismatch
             const schema = z.object({
                 name: z.string().min(1),
-                keyExchanges: z.array(
-                    z.object({
-                        deviceid: z.string().min(1),
-                        value: z.string(),
-                    })
-                )
+                description: z.string(),
+                secret: z.string().min(1),
             })
 
-            const { keyExchanges } = schema.parse(req.body);
+            schema.parse(req.body);
 
-            // get all device for the user
-            let devices = await this.device.getAll({
-                where: {
-                    user: {
-                        id: user.id,
-                    },
-                },
-            });
-
-            // check if at least one device's encryption key is missing
-            let created: { [deviceid: string]: true } = {};
-            keyExchanges.forEach((key) => created[key.deviceid] = true);
-            if (devices.some((device) => !created[device.id])) throw new HttpException("Missing encryption key for devices", HttpStatus.BAD_REQUEST);
         } else if (req.path === "/safe" && (req.method === "DELETE" || req.method === "PUT")) {
             const roles = this.reflector.get<RoleType[]>('role', context.getHandler());
 
