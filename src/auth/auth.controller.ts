@@ -85,10 +85,10 @@ export class AuthController {
                 )
             );
 
-            return {
+            res.json({
                 message: "Successful authentication!",
                 rsa,
-            };
+            });
         }
 
         return {
