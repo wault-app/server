@@ -1,6 +1,7 @@
-import { Body, Controller, Post, Req } from '@nestjs/common';
+import { Body, Controller, Post, Req, Res } from '@nestjs/common';
 import { ApiBody, ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
+import { serialize } from 'cookie';
+import { Request, Response } from 'express';
 import { LoginDTO } from 'src/dto/LoginDTO';
 import { RegisterDTO } from 'src/dto/RegisterDTO';
 import { z } from 'zod';
@@ -57,7 +58,7 @@ export class AuthController {
     }
 
     @Post("/login")
-    async login(@Body() body: LoginDTO) {
+    async login(@Body() body: LoginDTO, @Res() res: Response) {
         const schema = z.object({
             email: z.string(),
             password: z.string(),
@@ -68,6 +69,27 @@ export class AuthController {
         const { email, password, deviceName, deviceType } = schema.parse(body);
 
         const { sessionToken, rsa } = await this.service.login(email, password, deviceName, deviceType);
+
+        if(deviceType === "BROWSER") {
+            res.setHeader(
+                "Set-Cookie",
+                serialize("session_token", sessionToken,
+                    {
+                        secure: process.env.NODE_ENV === "production",
+                        httpOnly: true,
+                        sameSite: "none",
+                        path: "/",
+                        domain: ".wault.app",
+                        expires: new Date("2038-01-19"), // max age for cookies
+                    }
+                )
+            );
+
+            return {
+                message: "Successful authentication!",
+                rsa,
+            };
+        }
 
         return {
             message: "Successful authentication!",
