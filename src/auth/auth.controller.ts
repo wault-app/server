@@ -110,6 +110,10 @@ export class AuthController {
         // if check was successful, send back an answer
         return {
             message: "Successful authentication!",
+            rsa: {
+                public: user.publicRSAKey,
+                private: user.privateRSAKey,
+            },
         };
     }
 }
