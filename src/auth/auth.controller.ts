@@ -1,11 +1,14 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiTags } from '@nestjs/swagger';
 import { serialize } from 'cookie';
 import { Request, Response } from 'express';
 import { LoginDTO } from 'src/dto/LoginDTO';
 import { RegisterDTO } from 'src/dto/RegisterDTO';
+import { User } from 'src/user/user.decorator';
 import { z } from 'zod';
 import { AuthService } from './auth.service';
+import bcrypt from 'bcrypt';
+import { SessionTokenGuard } from 'src/session-token/session-token.guard';
 
 @Controller('auth')
 @ApiTags("auth")
@@ -95,6 +98,18 @@ export class AuthController {
             message: "Successful authentication!",
             sessionToken,
             rsa,
+        };
+    }
+
+    @Post("/checkPassword")
+    @UseGuards(SessionTokenGuard)
+    async checkPassword(@Body("password") password: string, @User() user: User) {
+        // checks if the given password matches the stored one in the database
+        if(!(await bcrypt.compare(password, user.password))) throw new ForbiddenException({}, "Your password does not match!");
+
+        // if check was successful, send back an answer
+        return {
+            message: "Successful authentication!",
         };
     }
 }
