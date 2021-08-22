@@ -7,7 +7,7 @@ import { RegisterDTO } from 'src/dto/RegisterDTO';
 import { User } from 'src/user/user.decorator';
 import { z } from 'zod';
 import { AuthService } from './auth.service';
-import bcrypt from 'bcrypt';
+import * as bcrypt from 'bcrypt';
 import { SessionTokenGuard } from 'src/session-token/session-token.guard';
 
 @Controller('auth')
