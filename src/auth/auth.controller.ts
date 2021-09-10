@@ -152,7 +152,7 @@ export class AuthController {
     @UseGuards(JwtAuthGuard)
     async checkPassword(@Body("password") password: string, @User() user: User) {
         // checks if the given password matches the stored one in the database
-        if(!(await bcrypt.compare(password, user.password))) throw new ForbiddenException({}, "Your password does not match!");
+        if(!(await bcrypt.compare(password, user.password))) throw new ForbiddenException("Your password does not match!");
 
         // if check was successful, send back an answer
         return {
