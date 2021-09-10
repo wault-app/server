@@ -15,7 +15,7 @@ import { RefreshTokenDTO } from 'src/dto/RefreshTokenDTO';
 const cookieOptions: CookieSerializeOptions = {
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
-    sameSite: "strict",
+    sameSite: "none",
     path: "/",
     expires: new Date("2038-01-19"),
 };
