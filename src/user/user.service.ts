@@ -13,10 +13,10 @@ export class UserService {
             },
             select: {
                 id: true,
-                email: true,
-                publicRSAKey: true,
-                privateRSAKey: true,
                 username: true,
+                email: true,
+                publicKey: true,
+                privateKey: true,
                 icon: {
                     select: {
                         id: true,

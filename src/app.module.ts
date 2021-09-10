@@ -8,15 +8,14 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { MailModule } from './mail/mail.module';
 import { SecretService } from './secret/secret.service';
 import { DeviceService } from './device/device.service';
-import { SessionTokenService } from './session-token/session-token.service';
 import { DeviceModule } from './device/device.module';
-import { SessionTokenModule } from './session-token/session-token.module';
 import { SecretModule } from './secret/secret.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SafeService } from './safe/safe.service';
 import { UserService } from './user/user.service';
 import { ItemService } from './item/item.service';
 import { UserController } from './user/user.controller';
+import { RefreshTokenService } from './refresh-token/refresh-token.service';
 
 @Module({
   imports: [
@@ -28,11 +27,10 @@ import { UserController } from './user/user.controller';
     }),
     MailModule,
     DeviceModule,
-    SessionTokenModule,
     SecretModule,
     PrismaModule
   ],
   controllers: [SafeController, ItemController, UserController],
-  providers: [PrismaService, SecretService, DeviceService, SessionTokenService, SafeService, UserService, ItemService]
+  providers: [PrismaService, SecretService, DeviceService, SafeService, UserService, ItemService, RefreshTokenService]
 })
 export class AppModule { }

@@ -1,12 +1,13 @@
-import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { MailService } from 'src/mail/mail.service';
-import { DeviceType } from '@prisma/client';
+import { DeviceType, Device } from '@prisma/client';
 import { SecretService } from 'src/secret/secret.service';
 import { DeviceService } from 'src/device/device.service';
-import { SessionTokenService } from 'src/session-token/session-token.service';
-import { RSAKeyPairDTO } from 'src/dto/RSAKeyPairDTO';
+import { RegisterDTO } from 'src/dto/RegisterDTO';
+import { JwtService } from '@nestjs/jwt';
+import { RefreshTokenService } from 'src/refresh-token/refresh-token.service';
 
 @Injectable()
 export class AuthService {
@@ -15,28 +16,55 @@ export class AuthService {
         private mail: MailService,
         private secret: SecretService,
         private device: DeviceService,
-        private sessionToken: SessionTokenService,
+        private jwt: JwtService,
+        private refresh: RefreshTokenService,
     ) {}
-
-    async validateUser(sessionToken: string) {
-        // extract data from session token
-        const { id, secret } = JSON.parse(Buffer.from(sessionToken, "base64").toString("utf-8"));
     
-        // find the device with the given id
-        const device = await this.prisma.device.findUnique({
+    /**
+     * Validates if there is an account with the associated email address and if the password matches the email.
+     * @param email {string} email address of the user
+     * @param password {string} a pbkdf2 encrypted version of the password
+     * @throws {UnauthorizedException} if there is no user with this email or if password does not matches
+     * @returns {User} user object
+     */
+    async validateUser(email: string, password: string) {
+        const user = await this.prisma.user.findUnique({
             where: {
-                id,
-            },
-            include: {
-                user: true,
+                email,
             },
         });
 
-        // check for session token match
-        if(!device || !(await bcrypt.compare(secret, device.sessionToken))) throw new UnauthorizedException();
-    
-        // return the user object
-        return device.user;
+        if(!user || !(await bcrypt.compare(password, user.password))) throw new UnauthorizedException();
+
+        return user;
+    }
+
+    /**
+     * Generates a new access token as a jwt signed string for a given device.
+     * @param device {Device} the device, that we want to use 
+     * @returns {string} a jwt string
+     */
+    private generateAccessToken(device: Device) {
+        return this.jwt.sign({
+            sub: device.userId,
+            device: device.id,
+        });
+    }
+
+    /**
+     * Takes an old refresh token and generates a new access and refresh token.
+     * @param oldRefreshToken {string} old refresh token as a string
+     * @returns an object containing the access and refresh token
+     */
+    async refreshToken(oldRefreshToken: string) {
+        const { refreshToken, device } = await this.refresh.refresh(oldRefreshToken); 
+        const accessToken = await this.generateAccessToken(device);
+
+        return {
+            accessToken,
+            refreshToken,
+            device,
+        };
     }
 
     async verifyEmail(id: string, secret: string) {
@@ -58,25 +86,34 @@ export class AuthService {
         });
 
         // create the device
-        const device = await this.device.create({
-            user: {
-                create: {
-                    username: confirmation.username,
-                    email: confirmation.email,
-                    password: confirmation.password,
-                    privateRSAKey: confirmation.privateRSAKey,
-                    publicRSAKey: confirmation.publicRSAKey,
+        const device = await this.prisma.device.create({
+            data: {
+                user: {
+                    create: {
+                        username: confirmation.username,
+                        email: confirmation.email,
+                        password: confirmation.password,
+                        privateKey: confirmation.privateKey,
+                        publicKey: confirmation.publicKey,
+                    },
                 },
+                name: confirmation.deviceName,
+                type: confirmation.deviceType,
             },
-            name: confirmation.deviceName,
-            type: confirmation.deviceType,
+            include: {
+                user: true,
+            },
         });
 
         // generate session token for the device
-        const sessionToken = await this.sessionToken.create(device);
+        const accessToken = await this.generateAccessToken(device);
+
+        const { refreshToken } = await this.refresh.create(device);
 
         return {
-            sessionToken,
+            accessToken,
+            refreshToken,
+            device,
         };
     }
 
@@ -87,8 +124,7 @@ export class AuthService {
             },
         });
 
-        if(!user) throw new NotFoundException();
-        if(!(await bcrypt.compare(password, user.password))) throw new ForbiddenException();
+        if(!user || !(await bcrypt.compare(password, user.password))) throw new ForbiddenException();
 
         // create the device
         const device = await this.device.create({
@@ -102,18 +138,22 @@ export class AuthService {
         });
 
         // generate session token for the device
-        const sessionToken = await this.sessionToken.create(device);
+        const accessToken = await this.generateAccessToken(device);
+
+        // generate a refresh token
+        const { refreshToken } = await this.refresh.create(device);
 
         return {
-            sessionToken,
+            accessToken,
+            refreshToken,
             rsa: {
-                public: user.publicRSAKey,
-                private: user.privateRSAKey,
+                publicKey: user.publicKey,
+                privateKey: user.privateKey,
             },
         };
     }
 
-    async sendVerificationEmail(username: string, email: string, password: string, deviceType: DeviceType, deviceName: string, rsa: RSAKeyPairDTO) {
+    async sendVerificationEmail({ username, email, password, deviceType, deviceName, rsa }: RegisterDTO) {
         // generate a random hex string to verify indentity
         const secret = this.secret.generateHex(128);
 
@@ -126,8 +166,8 @@ export class AuthService {
                 password: await bcrypt.hash(password, 10),
                 deviceType,
                 deviceName,
-                publicRSAKey: rsa.public,
-                privateRSAKey: rsa.private,
+                publicKey: rsa.publicKey,
+                privateKey: rsa.privateKey,
             },
         });
 

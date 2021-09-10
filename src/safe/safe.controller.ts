@@ -1,9 +1,9 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/jwt.guard';
 import { CreateSafeDTO } from 'src/dto/CreateSafeDTO';
 import { EditSafeDTO } from 'src/dto/EditSafeDTO';
 import { Role } from 'src/role/role.decorator';
-import { SessionTokenGuard } from 'src/session-token/session-token.guard';
 import { User } from 'src/user/user.decorator';
 import { SafeGuard } from './safe.guard';
 import { SafeService } from './safe.service';
@@ -15,7 +15,7 @@ export class SafeController {
     constructor(private keycard: SafeService) { }
 
     @Get()
-    @UseGuards(SessionTokenGuard)
+    @UseGuards(JwtAuthGuard)
     async getAll(@User() user: User) {
         return {
             keycards: await this.keycard.getAll({
@@ -27,7 +27,7 @@ export class SafeController {
     }
 
     @Post()
-    @UseGuards(SessionTokenGuard, SafeGuard)
+    @UseGuards(JwtAuthGuard, SafeGuard)
     @ApiBody({
         type: CreateSafeDTO,
     })
@@ -62,7 +62,7 @@ export class SafeController {
 
     @Put(":id")
     @Role("OWNER", "WRITER")
-    @UseGuards(SessionTokenGuard, SafeGuard)
+    @UseGuards(JwtAuthGuard, SafeGuard)
     @ApiBody({
         type: EditSafeDTO,
     })
@@ -91,7 +91,7 @@ export class SafeController {
 
     @Delete(":id")
     @Role("OWNER")
-    @UseGuards(SessionTokenGuard, SafeGuard)
+    @UseGuards(JwtAuthGuard, SafeGuard)
     async delete(@Param("id") id: string) {
         // TODO: implement delete
     }

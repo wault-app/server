@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import * as helmet from "helmet";
+import * as helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
 import * as fs from 'fs';
 import { json as bodyParser } from 'body-parser';

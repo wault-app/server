@@ -1,6 +1,6 @@
 import { Body, Controller, ForbiddenException, Post, Req, Res, UseGuards } from '@nestjs/common';
-import { ApiBody, ApiTags } from '@nestjs/swagger';
-import { serialize } from 'cookie';
+import { ApiTags } from '@nestjs/swagger';
+import { CookieSerializeOptions, serialize } from 'cookie';
 import { Request, Response } from 'express';
 import { LoginDTO } from 'src/dto/LoginDTO';
 import { RegisterDTO } from 'src/dto/RegisterDTO';
@@ -8,17 +8,24 @@ import { User } from 'src/user/user.decorator';
 import { z } from 'zod';
 import { AuthService } from './auth.service';
 import * as bcrypt from 'bcrypt';
-import { SessionTokenGuard } from 'src/session-token/session-token.guard';
+import { JwtAuthGuard } from './jwt.guard';
+import { VerifyEmailDTO } from 'src/dto/VerifyEmailDTO';
+import { RefreshTokenDTO } from 'src/dto/RefreshTokenDTO';
 
-@Controller('auth')
+const cookieOptions: CookieSerializeOptions = {
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+    sameSite: "strict",
+    path: "/",
+    expires: new Date("2038-01-19"),
+};
+
 @ApiTags("auth")
+@Controller("/auth")
 export class AuthController {
     constructor (private service: AuthService) {}
 
     @Post("/register")
-    @ApiBody({
-        type: RegisterDTO
-    })
     async register(@Body() body: RegisterDTO) {
         const schema = z.object({
             username: z.string(),
@@ -26,37 +33,80 @@ export class AuthController {
             password: z.string(),
 
             rsa: z.object({
-                public: z.string().min(1),
-                private: z.string().min(1),
+                publicKey: z.string(),
+                privateKey: z.string(), // encrypted version via the password
             }).required(),
             
             deviceType: z.enum(["BROWSER", "MOBILE", "DESKTOP", "CLI"]),
             deviceName: z.string(),
         });
         
-        const { username, email, password, deviceType, deviceName } = schema.parse(body);
+        const data = schema.parse(body);
 
-        await this.service.sendVerificationEmail(username, email, password, deviceType, deviceName, body.rsa);
+        await this.service.sendVerificationEmail(data);
 
         return {
             message: "Verification email sent!",
         };
     }
 
+    @Post("/refresh_token")
+    async refreshToken(@Body() body: RefreshTokenDTO, @Req() req: Request, @Res() res: Response) {
+        const token = body.refreshToken || req.cookies.refresh_token;
+        if(!token) throw new ForbiddenException({ message: "A refresh token was not present in the header." }); 
+        
+        const { accessToken, refreshToken, device } = await this.service.refreshToken(token);
+
+        if(device.type === "BROWSER") {
+            res.setHeader(
+                "Set-Cookie",
+                [
+                    serialize("access_token", accessToken, cookieOptions),
+                    serialize("refresh_token", refreshToken, cookieOptions),
+                ]
+            )
+
+            res.json({});
+        }
+
+        return {
+            accessToken,
+            refreshToken,
+        };
+    }
+
     @Post("/register/verify")
-    async verifyEmail(@Req() req: Request) {
+    async verifyEmail(@Body() body: VerifyEmailDTO, @Res() res: Response) {
         const schema = z.object({
             id: z.string(),
             secret: z.string(),
         });
 
-        const { id, secret } = schema.parse(req.body);
+        const { id, secret } = schema.parse(body);
 
-        const { sessionToken } = await this.service.verifyEmail(id, secret);
+        const { accessToken, refreshToken, device } = await this.service.verifyEmail(id, secret);
+
+        if(device.type === "BROWSER") {
+            res.setHeader(
+                "Set-Cookie",
+                [
+                    serialize("access_token", accessToken, cookieOptions),
+                    serialize("refresh_token", refreshToken, cookieOptions),
+                ],
+            );
+
+            const resp = {
+                message: "Successfully verified your email address!",
+            };
+
+            res.json(resp);
+            return resp;
+        }
 
         return {
             message: "Successfully verified your email address!",
-            sessionToken,
+            accessToken,
+            refreshToken,
         };
     }
 
@@ -71,38 +121,35 @@ export class AuthController {
 
         const { email, password, deviceName, deviceType } = schema.parse(body);
 
-        const { sessionToken, rsa } = await this.service.login(email, password, deviceName, deviceType);
+        const { accessToken, refreshToken, rsa: { publicKey, privateKey } } = await this.service.login(email, password, deviceName, deviceType);
 
         if(deviceType === "BROWSER") {
             res.setHeader(
                 "Set-Cookie",
-                serialize("session_token", sessionToken,
-                    {
-                        secure: process.env.NODE_ENV === "production",
-                        httpOnly: true,
-                        sameSite: "none",
-                        path: "/",
-                        domain: ".wault.app",
-                        expires: new Date("2038-01-19"), // max age for cookies
-                    }
-                )
+                [
+                    serialize("access_token", accessToken, cookieOptions),
+                    serialize("refresh_token", refreshToken, cookieOptions)
+                ]
             );
 
             res.json({
                 message: "Successful authentication!",
-                rsa,
+                publicKey,
+                privateKey,
             });
         }
 
         return {
             message: "Successful authentication!",
-            sessionToken,
-            rsa,
+            refreshToken,
+            accessToken,
+            publicKey,
+            privateKey,
         };
     }
 
     @Post("/checkPassword")
-    @UseGuards(SessionTokenGuard)
+    @UseGuards(JwtAuthGuard)
     async checkPassword(@Body("password") password: string, @User() user: User) {
         // checks if the given password matches the stored one in the database
         if(!(await bcrypt.compare(password, user.password))) throw new ForbiddenException({}, "Your password does not match!");
@@ -110,10 +157,8 @@ export class AuthController {
         // if check was successful, send back an answer
         return {
             message: "Successful authentication!",
-            rsa: {
-                public: user.publicRSAKey,
-                private: user.privateRSAKey,
-            },
+            publicKey: user.publicKey,
+            privateKey: user.privateKey,
         };
     }
 }

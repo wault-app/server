@@ -1,9 +1,9 @@
 import { Body, Controller, Delete, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/jwt.guard';
 import { CreateItemDTO } from 'src/dto/CreateItemDTO';
 import { EditItemDTO } from 'src/dto/EditItemDTO';
 import { Role } from 'src/role/role.decorator';
-import { SessionTokenGuard } from 'src/session-token/session-token.guard';
 import { ItemGuard } from './item.guard';
 import { ItemService } from './item.service';
 
@@ -15,7 +15,7 @@ export class ItemController {
 
     @Post()
     @Role("OWNER", "WRITER")
-    @UseGuards(SessionTokenGuard, ItemGuard)
+    @UseGuards(JwtAuthGuard, ItemGuard)
     async create(@Body() body: CreateItemDTO) {
         const { data, safeid } = body;
         
@@ -36,7 +36,7 @@ export class ItemController {
 
     @Put(":id")
     @Role("OWNER", "WRITER")
-    @UseGuards(SessionTokenGuard, ItemGuard)
+    @UseGuards(JwtAuthGuard, ItemGuard)
     async edit(@Param("id") id: string, @Body() body: EditItemDTO) {
         const { data } = body;
         
@@ -57,7 +57,7 @@ export class ItemController {
 
     @Delete(":id")
     @Role("OWNER", "WRITER")
-    @UseGuards(SessionTokenGuard, ItemGuard)
+    @UseGuards(JwtAuthGuard, ItemGuard)
     async delete(@Param("id") id: string) {
         await this.service.delete({
             where: {

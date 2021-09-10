@@ -8,16 +8,16 @@ datasource db {
 
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["nApi", "referentialActions"]
+  previewFeatures = ["nApi"]
 }
 
 model User {
-  id            String @id @default(cuid()) @map("_id")
-  username      String @unique
-  email         String @unique
-  password      String // pbkd2 on client-side -> encrypted with bcrypt with >=10 rounds on server-side
-  publicRSAKey  String // not encrypted
-  privateRSAKey String // encrypted with AES-256 (key is derived from password)
+  id         String @id @default(cuid()) @map("_id")
+  username   String @unique
+  email      String @unique
+  password   String // pbkdf2 on client-side -> encrypted with bcrypt with >=10 rounds on server-side
+  publicKey  String // not encrypted
+  privateKey String // encrypted with AES-256 (key is derived from password)
 
   icon Icon?
 
@@ -43,28 +43,28 @@ model EmailConfirmation {
   secret String
 
   // information needed to create user
-  email         String
-  username      String
-  password      String
-  publicRSAKey  String
-  privateRSAKey String
+  email      String
+  username   String
+  password   String
+  publicKey  String
+  privateKey String
 
   // information needed to create device
-  deviceName String
-  deviceType DeviceType
-  createdAt  DateTime   @default(now())
+  deviceName String?
+  deviceType DeviceType?
+  createdAt  DateTime    @default(now())
 
   @@map("email_confirmation")
 }
 
 model Authentication {
-  id           String     @id @default(cuid()) @map("_id")
-  secret       String
-  deviceName   String
-  deviceType   DeviceType
-  publicRSAKey String
-  password     String? // encrypted with RSA-2048 based on `publicRSAKey` 
-  user         User?      @relation(fields: [userId], references: [id])
+  id         String      @id @default(cuid()) @map("_id")
+  secret     String
+  deviceName String
+  deviceType DeviceType?
+  publicKey  String
+  password   String? // encrypted with RSA-2048 based on `publicKey` 
+  user       User?       @relation(fields: [userId], references: [id])
 
   userId String?
   @@map("authentications")
@@ -72,9 +72,9 @@ model Authentication {
 
 model Device {
   id           String     @id @default(cuid()) @map("_id")
-  sessionToken String?    @map("session_token")
-  name         String
-  type         DeviceType
+  secret       String?
+  name         String?
+  type         DeviceType?
   loggedInAt   DateTime   @default(now()) @map("logged_in_at")
   user         User       @relation(fields: [userId], references: [id])
 
@@ -104,7 +104,7 @@ model Item {
 
 model Keycard {
   id     String   @id @default(cuid()) @map("_id")
-  secret String // encrypted with RSA-2048 with user's publicRSAKey
+  secret String // encrypted with RSA-2048 with user's publicKey
   safe   Safe     @relation(fields: [safeId], references: [id])
   user   User     @relation(fields: [userId], references: [id])
   role   RoleType
