@@ -2,21 +2,12 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
-import * as fs from 'fs';
 import { json as bodyParser } from 'body-parser';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
-const httpsOptions = process.env.NODE_ENV === "production" ? {
-    key: fs.readFileSync('/etc/letsencrypt/live/server.wault.app/privkey.pem', 'utf8'),
-    cert: fs.readFileSync('/etc/letsencrypt/live/server.wault.app/cert.pem', 'utf8'),
-    ca: fs.readFileSync('/etc/letsencrypt/live/server.wault.app/chain.pem', 'utf8'),
-} : undefined;
-
 const bootstrap = async () => {
     // create a new nest instance
-    const app = await NestFactory.create(AppModule, {
-        httpsOptions,
-    });
+    const app = await NestFactory.create(AppModule);
 
     // setup swagger module
     const config = new DocumentBuilder()
