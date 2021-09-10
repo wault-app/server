@@ -36,6 +36,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             const bearerToken = req.headers.authorization?.split(" ")[1];
     
             const accessToken = bearerToken || cookieToken;
+            if(!accessToken) throw new UnauthorizedException("You are not logged in!");
+            
             jwt.verify(accessToken, process.env.JWT_SECRET || "");
     
             return bearerToken || cookieToken;
