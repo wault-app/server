@@ -139,13 +139,13 @@ export class AuthController {
             });
         }
 
-        return {
+        res.json({
             message: "Successful authentication!",
             refreshToken,
             accessToken,
             publicKey,
             privateKey,
-        };
+        });
     }
 
     @Post("/checkPassword")
