@@ -2,12 +2,12 @@ import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/c
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { MailService } from 'src/mail/mail.service';
-import { DeviceType, Device } from '@prisma/client';
+import { DeviceType, Device, User } from '@prisma/client';
 import { SecretService } from 'src/secret/secret.service';
-import { DeviceService } from 'src/device/device.service';
 import { RegisterDTO } from 'src/dto/RegisterDTO';
 import { JwtService } from '@nestjs/jwt';
 import { RefreshTokenService } from 'src/refresh-token/refresh-token.service';
+import { AccessTokenType } from '@wault/typings';
 
 @Injectable()
 export class AuthService {
@@ -15,7 +15,6 @@ export class AuthService {
         private prisma: PrismaService,
         private mail: MailService,
         private secret: SecretService,
-        private device: DeviceService,
         private jwt: JwtService,
         private refresh: RefreshTokenService,
     ) {}
@@ -44,11 +43,15 @@ export class AuthService {
      * @param device {Device} the device, that we want to use 
      * @returns {string} a jwt string
      */
-    private generateAccessToken(device: Device) {
-        return this.jwt.sign({
+    private generateAccessToken(device: Device & { user: User }) {
+        const data: AccessTokenType = {
             sub: device.userId,
             device: device.id,
-        });
+            username: device.user.username,
+            email: device.user.email,
+        };
+        
+        return this.jwt.sign(data);
     }
 
     /**
@@ -127,14 +130,19 @@ export class AuthService {
         if(!user || !(await bcrypt.compare(password, user.password))) throw new ForbiddenException();
 
         // create the device
-        const device = await this.device.create({
-            user: {
-                connect: {
-                    id: user.id,
+        const device = await this.prisma.device.create({
+            data: {
+                user: {
+                    connect: {
+                        id: user.id,
+                    },
                 },
+                name: deviceName,
+                type: deviceType,
             },
-            name: deviceName,
-            type: deviceType,
+            include: {
+                user: true,
+            },
         });
 
         // generate session token for the device

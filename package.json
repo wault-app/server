@@ -33,6 +33,7 @@
     "@sendgrid/mail": "^7.4.5",
     "@switchit/nestjs-oauth2-server": "^0.1.4",
     "@t00nday/nestjs-oauth2-server": "0.0.4",
+    "@wault/typings": "git+https://github.com/wault-app/typings.git",
     "bcrypt": "^5.0.1",
     "body-parser": "^1.19.0",
     "cookie": "^0.4.1",

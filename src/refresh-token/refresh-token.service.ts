@@ -53,6 +53,9 @@ export class RefreshTokenService {
             where: {
                 id,
             },
+            include: {
+                user: true,
+            },
         });
 
         if(!device || !secret || !(await bcrypt.compare(secret, device.secret || "NOT YET SET"))) throw new UnauthorizedException();
