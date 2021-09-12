@@ -69,10 +69,10 @@ export class AuthController {
             res.json({});
         }
 
-        return {
+        res.json({
             accessToken,
             refreshToken,
-        };
+        });
     }
 
     @Post("/register/verify")
