@@ -22,7 +22,7 @@ const bootstrap = async () => {
 
     // enable cors requests from wault.app
     app.enableCors({
-        origin: "https://wault.app",
+        origin: "https://hub.wault.app",
         optionsSuccessStatus: 200,
         credentials: true,
     });
